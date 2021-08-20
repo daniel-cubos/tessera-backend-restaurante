@@ -1,53 +1,53 @@
 const yup = require('./config');
 
 const cadastrarUsuario = yup.object().shape({
-    nome: yup
-        .string()
-        .max(100)
-        .required(),
-    
-    email: yup    
-        .string()
-        .email()
-        .max(100)
-        .required(),
+	nome: yup
+		.string()
+		.max(100)
+		.required(),
 
-    senha: yup
-        .string()
-        .required()
-        .min(6)
+	email: yup
+		.string()
+		.email()
+		.max(100)
+		.required(),
+
+	senha: yup
+		.string()
+		.required()
+		.min(6)
 });
 
 const editarUsuario = yup.object().shape({
-    nome: yup
-        .string()
-        .max(100),
-    
-    email: yup    
-        .string()
-        .email()
-        .max(100),
+	nome: yup
+		.string()
+		.max(100),
 
-    senha: yup
-        .string()
-        .min(6)
+	email: yup
+		.string()
+		.email()
+		.max(100),
+
+	senha: yup
+		.string()
+		.min(6)
 });
 
 const loginUsuario = yup.object().shape({
-    email: yup
-        .string()
-        .email()
-        .required()
-        .max(100),
+	email: yup
+		.string()
+		.email()
+		.required()
+		.max(100),
 
-    senha: yup
-        .string()
-        .required()
+	senha: yup
+		.string()
+		.required()
 });
 
-module.exports = 
+module.exports =
 {
-    cadastrarUsuario,
-    editarUsuario,
-    loginUsuario
+	cadastrarUsuario,
+	editarUsuario,
+	loginUsuario
 };
