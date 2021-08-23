@@ -112,7 +112,7 @@ const editarUsuario = async (req, res) => {
 				valor_minimo_pedido: requisicaoRestaurante.valorMinimoPedido
 			}
 
-			if (atualizarRestaurante.length) {
+			if (Object.keys(atualizarRestaurante).length !== 0) {
 				const restauranteAtualizado = await knex('restaurante').where({ id: restaurante_id }).update(atualizarRestaurante);
 
 				if (restauranteAtualizado.length === 0)
