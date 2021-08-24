@@ -1,16 +1,14 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const knex = require('../../bancodedados/conexao');
-const schemaUsuario = require('../../validacao/usuarioSchema');
-const { uploadImagem, atualizarImagem } = require('../../supabase');
-const schemaRestaurante = require('../../validacao/restauranteSchema');
+const schema = require('../../validacao/usuarioSchema');
+const { uploadImagem, atualizarImagem, pegarUrlImagem } = require('../../supabase');
 
 const cadastrarUsuario = async (req, res) => {
 	const { restaurante, ...usuario } = req.body;
 
 	try {
-		await schemaUsuario.cadastrarUsuario.validate(usuario);
-		await schemaRestaurante.cadastrarRestaurante.validate(restaurante);
+		await schema.cadastrarUsuario.validate(req.body);
 
 		const existeUsuario = await knex('usuario').where('email', usuario.email).first();
 
@@ -27,11 +25,11 @@ const cadastrarUsuario = async (req, res) => {
 		if (usuarioCadastrado.length === 0)
 			return res.status(400).json('Não foi possível realizar o cadastro do usuario.');
 
-		const { id: usuarioID } = usuarioCadastrado[0];
+		const { id: usuario_id } = usuarioCadastrado[0];
 
 		const novoRestaurante =
 		{
-			usuario_id: usuarioID,
+			usuario_id,
 			nome: restaurante.nome,
 			descricao: restaurante.descricao,
 			categoria_id: restaurante.idCategoria,
@@ -46,11 +44,18 @@ const cadastrarUsuario = async (req, res) => {
 			return res.status(400).json('Não foi possível realizar o cadastro do restaurante.');
 
 		if (restaurante.imagemRestaurante) {
-			const caminhoImagem = 'restaurante_' + restauranteCadastrado[0].id.toString() + '/capa.jpg';
+
+			const caminhoImagem = 'restaurante_' + restauranteCadastrado[0].id.toString() + '/imagem_restaurante.jpg';
 			const uploadImage = uploadImagem(restaurante.imagemRestaurante, caminhoImagem);
 
 			if (uploadImage.length === 0)
-				return res.status(400).json(uploadImage)
+				return res.status(400).json(uploadImage);
+
+			const urlImagem = await pegarUrlImagem(caminhoImagem);
+			const urlCadastrada = await knex('restaurante').where({ id: restauranteCadastrado[0].id }).update({ img_restaurante: urlImagem });
+
+			if (urlCadastrada.length === 0)
+				return res.status(400).json('Não foi possível realizar o cadastro da imagem do restaurante.');
 		}
 		return res.status(200).json("Usuario cadastrado com sucesso");
 	}
@@ -61,39 +66,35 @@ const cadastrarUsuario = async (req, res) => {
 
 const editarUsuario = async (req, res) => {
 	const { authorization } = req.headers;
-	const { restaurante: requisicaoRestaurante, ...requisicaoUsuario } = req.body;
+	const { restaurante: updateRestaurante, ...updateUsuario } = req.body;
 
 	try {
 		const { id: usuario_id } = jwt.verify(authorization, process.env.SENHA_JWT);
 		const { id: restaurante_id } = await knex('restaurante').where({ usuario_id }).first();
 
-		if (Object.keys(req.body).length === 0)
-			return res.status(400).json("Deve ser preenchida alguma informação para atualizacao");
-
-		await schemaUsuario.editarUsuario.validate(requisicaoUsuario);
-		await schemaRestaurante.editarRestaurante.validate(requisicaoRestaurante);
+		await schema.editarUsuario.validate(req.body);
 
 		const usuarioBD = await knex('usuario').where({ id: usuario_id });
 		const { senha: senhaBD } = usuarioBD[0];
 
-		if (Object.keys(requisicaoUsuario).length !== 0) {
+		if (Object.keys(updateUsuario).length !== 0) {
 			let senha = senhaBD;
 
-			if (requisicaoUsuario.senha) {
-				const validarSenha = await bcrypt.compare(requisicaoUsuario.senha, senha);
+			if (updateUsuario.senha) {
+				const validarSenha = await bcrypt.compare(updateUsuario.senha, senha);
 
 				if (!validarSenha)
-					senha = await bcrypt.hash(requisicaoUsuario.senha, 10);
+					senha = await bcrypt.hash(updateUsuario.senha, 10);
 			}
 
 			const atualizarUsuario =
 			{
-				nome: requisicaoUsuario.nome,
-				email: requisicaoUsuario.email,
+				nome: updateUsuario.nome,
+				email: updateUsuario.email,
 				senha
 			}
 
-			if (atualizarUsuario.length) {
+			if (Object.keys(updateUsuario).length) {
 				const usuarioAtualizado = await knex('usuario').where({ id: usuario_id }).update(atualizarUsuario);
 
 				if (usuarioAtualizado.length === 0)
@@ -101,15 +102,27 @@ const editarUsuario = async (req, res) => {
 			}
 		}
 
-		if (Object.keys(requisicaoRestaurante).length !== 0) {
+		if (Object.keys(updateRestaurante).length !== 0) {
+			let urlImagem;
+			if (updateRestaurante.imagemRestaurante) {
+				const caminhoImagem = 'restaurante_' + restaurante_id + '/imagem_restaurante.jpg';
+				const uploadImage = await atualizarImagem(updateRestaurante.imagemRestaurante, caminhoImagem);
+
+				if (uploadImage.length === 0)
+					return res.status(400).json(uploadImage)
+
+				urlImagem = await pegarUrlImagem(caminhoImagem);
+			}
+
 			const atualizarRestaurante =
 			{
-				nome: requisicaoRestaurante.nome,
-				descricao: requisicaoRestaurante.descricao,
-				categoria_id: requisicaoRestaurante.idCategoria,
-				taxa_entrega: requisicaoRestaurante.taxaEntrega,
-				tempo_entrega_minutos: requisicaoRestaurante.tempoEntregaEmMinutos,
-				valor_minimo_pedido: requisicaoRestaurante.valorMinimoPedido
+				nome: updateRestaurante.nome,
+				descricao: updateRestaurante.descricao,
+				categoria_id: updateRestaurante.idCategoria,
+				taxa_entrega: updateRestaurante.taxaEntrega,
+				tempo_entrega_minutos: updateRestaurante.tempoEntregaEmMinutos,
+				valor_minimo_pedido: updateRestaurante.valorMinimoPedido,
+				img_restaurante: urlImagem
 			}
 
 			if (Object.keys(atualizarRestaurante).length !== 0) {
@@ -118,16 +131,7 @@ const editarUsuario = async (req, res) => {
 				if (restauranteAtualizado.length === 0)
 					return res.status(400).json('Erro na atualização do restaurante.');
 			}
-
-			if (requisicaoRestaurante.imagemRestaurante) {
-				const caminhoImagem = 'restaurante_' + restaurante_id + '/capa.jpg';
-				const uploadImage = atualizarImagem(requisicaoRestaurante.imagemRestaurante, caminhoImagem);
-
-				if (uploadImage.length === 0)
-					return res.status(400).json(uploadImage)
-			}
 		}
-
 		return res.status(200).json('Atualização concluida com sucesso');
 	}
 	catch (error) {

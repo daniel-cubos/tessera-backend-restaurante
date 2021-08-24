@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const knex = require('../../bancodedados/conexao');
 const schema = require('../../validacao/produstosSchema');
-const { uploadImagem, atualizarImagem } = require('../../supabase')
+const { uploadImagem, atualizarImagem, pegarUrlImagem } = require('../../supabase')
 
 const consultarProdutos = async (req, res) => {
 	const { id } = req.params;
@@ -31,7 +31,7 @@ const consultarProdutos = async (req, res) => {
 
 const cadastrarProdutos = async (req, res) => {
 	const { authorization } = req.headers;
-	const { nome, descricao, preco, permiteObservacoes: permite_observacoes, imagemProduto } = req.body;
+	const requisicaoProduto = req.body;
 
 	try {
 		const { id: usuario_id } = jwt.verify(authorization, process.env.SENHA_JWT);
@@ -41,26 +41,31 @@ const cadastrarProdutos = async (req, res) => {
 
 		const novoProduto =
 		{
-			nome,
-			preco,
-			descricao,
 			restaurante_id,
-			permite_observacoes
+			nome: requisicaoProduto.nome,
+			preco: requisicaoProduto.preco,
+			descricao: requisicaoProduto.descricao,
+			permite_observacoes: requisicaoProduto.permiteObservacoes
 		}
 
-		const produto = await knex('produto').insert(novoProduto).returning('*');
+		const produtoCadastrado = await knex('produto').insert(novoProduto).returning('*');
 
-		if (imagemProduto) {
-			const caminhoImagem = 'restaurante_' + restaurante_id.toString() + '/produtos/' + produto[0].id.toString() + '.jpg';
-			const uploadImage = uploadImagem(imagemProduto, caminhoImagem)
-
-			if (uploadImage.length === 0)
-				return res.status(400).json(uploadImage)
-		}
-
-		if (produto.length === 0)
+		if (produtoCadastrado.length === 0)
 			return res.status(400).json('Não foi possivel cadastrar o produto.');
 
+		if (requisicaoProduto.imagemProduto) {
+			const caminhoImagem = 'restaurante_' + restaurante_id.toString() + '/produtos/' + produtoCadastrado[0].id.toString() + '.jpg';
+			const uploadImage = uploadImagem(requisicaoProduto.imagemProduto, caminhoImagem);
+
+			if (uploadImage.length === 0)
+				return res.status(400).json(uploadImage);
+
+			const urlImagem = await pegarUrlImagem(caminhoImagem);
+			const urlCadastrada = await knex('produto').where({ id: produtoCadastrado[0].id }).update({ img_produto: urlImagem });
+
+			if (urlCadastrada.length === 0)
+				return res.status(400).json('Não foi possível realizar o cadastro da imagem do restaurante.');
+		}
 		return res.status(200).json('Produto inserido com sucesso!');
 	}
 	catch (error) {
@@ -71,11 +76,12 @@ const cadastrarProdutos = async (req, res) => {
 const editarProdutos = async (req, res) => {
 	const { id } = req.params;
 	const { authorization } = req.headers;
-	const { nome, descricao, preco, permiteObservacoes: permite_observacoes, imagemProduto } = req.body;
+	const requisicaoProduto = req.body;
 
 	try {
+		let urlImagem;
 		const { id: usuario_id } = jwt.verify(authorization, process.env.SENHA_JWT);
-		const { id: restaurante_id, nome: nome_restaurante } = await knex('restaurante').where({ usuario_id }).first();
+		const { id: restaurante_id } = await knex('restaurante').where({ usuario_id }).first();
 
 		await schema.editarProduto.validate(req.body);
 
@@ -84,19 +90,29 @@ const editarProdutos = async (req, res) => {
 		if (produto.length === 0)
 			return res.status(404).json('O produto não foi encontrado!');
 
-		if (imagemProduto) {
+		if (requisicaoProduto.imagemProduto) {
 			const caminhoImagem = 'restaurante_' + restaurante_id.toString() + '/produtos/' + id.toString() + '.jpg';
-			const attImage = atualizarImagem(imagemProduto, caminhoImagem)
+			const attImage = await atualizarImagem(requisicaoProduto.imagemProduto, caminhoImagem)
 
 			if (attImage.length === 0)
 				return res.status(400).json(attImage)
+
+			urlImagem = await pegarUrlImagem(caminhoImagem);
 		}
 
-		const produtoAtualizado = await knex('produto').where({ id })
-			.update({ nome, descricao, preco, permite_observacoes });
+		const atualizarProduto =
+		{
+			img_produto: urlImagem,
+			nome: requisicaoProduto.nome,
+			preco: requisicaoProduto.preco,
+			descricao: requisicaoProduto.descricao,
+			permite_observacoes: requisicaoProduto.permiteObservacoes
+		}
+
+		const produtoAtualizado = await knex('produto').where({ id }).update(atualizarProduto);
 
 		if (produtoAtualizado.length === 0)
-			return res.status(400).json('Erro na atualização.');
+			return res.status(400).json('Erro na atualização do produto.');
 
 		return res.status(200).json('Produto atualizado com sucesso!');
 	}

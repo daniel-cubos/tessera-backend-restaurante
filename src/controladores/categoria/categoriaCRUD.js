@@ -26,7 +26,7 @@ const consultarCategoria = async (req, res) => {
 }
 
 const cadastrarCategoria = async (req, res) => {
-	const { nome, imgem: img_categoria } = req.body;
+	const { nome, imagem: img_categoria } = req.body;
 
 	try {
 		const categoria = await knex('categoria').insert({ nome, img_categoria }).returning('*');
@@ -43,7 +43,7 @@ const cadastrarCategoria = async (req, res) => {
 
 const editarCategoria = async (req, res) => {
 	const { id } = req.params;
-	const { nome, imgem: img_categoria } = req.body;
+	const { nome, imagem: img_categoria } = req.body;
 
 	try {
 		const categoria = await knex('categoria').where({ id });
