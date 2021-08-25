@@ -44,6 +44,7 @@ const cadastrarProdutos = async (req, res) => {
 			restaurante_id,
 			nome: requisicaoProduto.nome,
 			preco: requisicaoProduto.preco,
+			ativo: requisicaoProduto.ativo,
 			descricao: requisicaoProduto.descricao,
 			permite_observacoes: requisicaoProduto.permiteObservacoes
 		}
@@ -104,6 +105,7 @@ const editarProdutos = async (req, res) => {
 		{
 			img_produto: urlImagem,
 			nome: requisicaoProduto.nome,
+			ativo: requisicaoProduto.ativo,
 			preco: requisicaoProduto.preco,
 			descricao: requisicaoProduto.descricao,
 			permite_observacoes: requisicaoProduto.permiteObservacoes
