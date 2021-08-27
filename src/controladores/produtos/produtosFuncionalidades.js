@@ -12,10 +12,13 @@ const ativarProduto = async (req, res) => {
 		const { id: usuario_id } = jwt.verify(authorization, process.env.SENHA_JWT);
 		const { id: restaurante_id } = await knex('restaurante').where({ usuario_id }).first();
 
-		const produto = await knex('produto').where({ id, restaurante_id });
+		const produto = await knex('produto').where({ id, restaurante_id }).first();
 
 		if (produto.length === 0)
 			return res.status(400).json('O produto não foi encontrado.');
+
+		if (produto.ativo === true)
+			return res.json("O produto já está ativo");
 
 		const produtoAtivo = await knex('produto').where({ id }).update({ ativo: true });
 
@@ -39,10 +42,13 @@ const desativarProduto = async (req, res) => {
 		const { id: usuario_id } = jwt.verify(authorization, process.env.SENHA_JWT);
 		const { id: restaurante_id } = await knex('restaurante').where({ usuario_id }).first();
 
-		const produto = await knex('produto').where({ id, restaurante_id });
+		const produto = await knex('produto').where({ id, restaurante_id }).first();
 
 		if (produto.length === 0)
 			return res.status(400).json('O produto não foi encontrado.');
+
+		if (produto.ativo === false)
+			return res.json("O produto já está desativado");
 
 		const produtoDesativado = await knex('produto').where({ id }).update({ ativo: false });
 

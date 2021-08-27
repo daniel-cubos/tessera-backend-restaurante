@@ -139,8 +139,38 @@ const editarUsuario = async (req, res) => {
 	}
 }
 
+const visualizarUsuario = async (req, res) => {
+	const { authorization } = req.headers;
+
+	try {
+		const { id: usuario_id } = jwt.verify(authorization, process.env.SENHA_JWT);
+
+		const usuario = await knex('usuario').where({ id: usuario_id }).first()
+		const restaurante = await knex('restaurante').where({ usuario_id }).first();
+
+		const info = {
+			usuarioId: usuario.id,
+			nomeUsuario: usuario.nome,
+			email: usuario.email,
+
+			restauranteId: restaurante.id,
+			nomeRestaurante: restaurante.nome,
+			descricaoRestaurante: restaurante.descricao,
+			categoriaRestaurante: restaurante.categoria_id,
+			taxaEntrega: restaurante.taxa_entrega,
+			valorMinimoPedido: restaurante.valor_minimo_pedido,
+			tempoEntregaEmMinutos: restaurante.tempo_entrega_minutos,
+			imagemRestaurante: restaurante.img_restaurante
+		}
+		return res.json(info)
+	} catch (error) {
+		return res.status(400).json(error.message);
+	}
+}
+
 module.exports =
 {
 	cadastrarUsuario,
-	editarUsuario
+	editarUsuario,
+	visualizarUsuario
 }
