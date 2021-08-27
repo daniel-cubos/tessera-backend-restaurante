@@ -156,6 +156,7 @@ const visualizarUsuario = async (req, res) => {
 			restauranteId: restaurante.id,
 			nomeRestaurante: restaurante.nome,
 			descricaoRestaurante: restaurante.descricao,
+			categoriaRestaurante: restaurante.categoria_id,
 			taxaEntrega: restaurante.taxa_entrega,
 			valorMinimoPedido: restaurante.valor_minimo_pedido,
 			tempoEntregaEmMinutos: restaurante.tempo_entrega_minutos,

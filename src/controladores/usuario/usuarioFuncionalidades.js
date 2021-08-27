@@ -39,6 +39,9 @@ const listagemDePedido = async (req, res) => {
 
 		const pedidos = await knex('pedido').where({ restaurante_id, enviado_entrega: false }).orderBy('id', 'asc');
 
+		if (pedidos.length === 0)
+			return res.status(404).json("Não há pedidos a serem exibidos");
+
 		for (let pedido of pedidos) {
 			const produtosCarrinho = [];
 
@@ -67,6 +70,7 @@ const listagemDePedido = async (req, res) => {
 
 			listagemPedidos.push(infos)
 		}
+
 		return res.json(listagemPedidos);
 
 	} catch (error) {
@@ -79,9 +83,12 @@ const detalhesDoPedido = async (req, res) => {
 
 	try {
 		const produtosCarrinho = [];
-		const { cliente_id } = await knex('pedido').where({ id: pedido_id }).first();
+		const cliente = await knex('pedido').where({ id: pedido_id }).first();
 
-		const infoConsumidor = await knex('endereco').where({ cliente_id })
+		if (!cliente)
+			return res.status(404).json("Pedido não encontrado");
+
+		const infoConsumidor = await knex('endereco').where({ cliente_id: cliente.cliente_id })
 			.join('cliente', 'cliente.id', 'endereco.cliente_id').first();
 
 		const produtosSolicitados = await knex('itens_pedido').where({ pedido_id })
