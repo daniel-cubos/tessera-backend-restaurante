@@ -11,6 +11,7 @@ const router = express();
 router.post('/login', funcionalidadeUsuario.fazerLogin);
 router.post('/usuarios', crudUsuario.cadastrarUsuario);
 router.put('/usuarios', filtroLogin, crudUsuario.editarUsuario);
+router.get('/usuarios', filtroLogin, crudUsuario.visualizarUsuario);
 
 router.get('/produtos', filtroLogin, crudProduto.consultarProdutos);
 router.get('/produtos/:id', filtroLogin, crudProduto.consultarProdutos);
