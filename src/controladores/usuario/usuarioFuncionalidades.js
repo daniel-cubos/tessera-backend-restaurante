@@ -42,11 +42,9 @@ const listagemDePedido = async (req, res) => {
 		if (pedidos.length === 0)
 			return res.status(404).json("Não há pedidos a serem exibidos");
 
-		for (let pedido of pedidos) {
-			const produtosCarrinho = [];
 
-			const { id: pedido_id } = pedido;
-			const { cliente_id } = await knex('pedido').where({ id: pedido_id }).first();
+		for (let pedido of pedidos) {
+			const { id: pedido_id, cliente_id } = pedido;
 
 			const infoConsumidor = await knex('endereco').where({ cliente_id })
 				.join('cliente', 'cliente.id', 'endereco.cliente_id').first();
@@ -54,9 +52,8 @@ const listagemDePedido = async (req, res) => {
 			const produtosSolicitados = await knex('itens_pedido').where({ pedido_id })
 				.join('produto', 'produto.id', 'itens_pedido.produto_id').limit(2);
 
-			for (let produto of produtosSolicitados) {
-				produtosCarrinho.push({ nome: produto.nome, quantidade: produto.quantidade_itens })
-			}
+			const produtosCarrinho = [];
+			produtosSolicitados.map(produto => produtosCarrinho.push({ nome: produto.nome, quantidade: produto.quantidade_itens }));
 
 			const infos = {
 				idPedido: pedido.id,
@@ -67,21 +64,22 @@ const listagemDePedido = async (req, res) => {
 				carrinho: produtosCarrinho,
 				totalPedido: pedido.total_pedido
 			}
-
 			listagemPedidos.push(infos)
 		}
-
 		return res.json(listagemPedidos);
-
 	} catch (error) {
 		return res.status(400).json(error.message);
 	}
 }
 
 const detalhesDoPedido = async (req, res) => {
+	const { authorization } = req.headers;
 	const { idPedido: pedido_id } = req.params;
 
 	try {
+		const { id: usuario_id } = jwt.verify(authorization, process.env.SENHA_JWT);
+		const { id: restaurante_id } = await knex('restaurante').where({ usuario_id }).first();
+
 		const produtosCarrinho = [];
 		const cliente = await knex('pedido').where({ id: pedido_id }).first();
 
@@ -94,9 +92,12 @@ const detalhesDoPedido = async (req, res) => {
 		const produtosSolicitados = await knex('itens_pedido').where({ pedido_id })
 			.join('produto', 'produto.id', 'itens_pedido.produto_id');
 
-		for (let produto of produtosSolicitados) {
-			produtosCarrinho.push({ nome: produto.nome, quantidade: produto.quantidade_itens })
-		}
+		const verificarPedido = produtosSolicitados.some(produto => produto.restaurante_id === restaurante_id);
+
+		if (!verificarPedido)
+			return res.json('Pedido não encontrado');
+
+		produtosSolicitados.map(produto => produtosCarrinho.push({ nome: produto.nome, quantidade: produto.quantidade_itens }))
 
 		const infos = {
 			nome: infoConsumidor.nome,
@@ -106,7 +107,7 @@ const detalhesDoPedido = async (req, res) => {
 			carrinho: produtosCarrinho
 		}
 
-		return res.json(infos)
+		return res.json(infos);
 	} catch (error) {
 		return res.status(400).json(error.message);
 	}
