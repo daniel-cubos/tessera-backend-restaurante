@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const knex = require('../../bancodedados/conexao');
 const schema = require('../../validacao/usuarioSchema');
-const { uploadImagem, atualizarImagem, pegarUrlImagem } = require('../../supabase');
+const { uploadImagem, atualizarImagem, pegarUrlImagem, tratarBase64 } = require('../../supabase');
 
 const cadastrarUsuario = async (req, res) => {
 	const { restaurante, ...usuario } = req.body;
@@ -44,9 +44,10 @@ const cadastrarUsuario = async (req, res) => {
 			return res.status(400).json('Não foi possível realizar o cadastro do restaurante.');
 
 		if (restaurante.imagemRestaurante) {
+			const { infoBase64, infoExtensao } = tratarBase64(restaurante.imagemRestaurante);
 
-			const caminhoImagem = 'restaurante_' + restauranteCadastrado[0].id.toString() + '/imagem_restaurante.jpg';
-			const uploadImage = uploadImagem(restaurante.imagemRestaurante, caminhoImagem);
+			const caminhoImagem = 'restaurante_' + restauranteCadastrado[0].id.toString() + '/imagem_restaurante.' + infoExtensao;
+			const uploadImage = uploadImagem(infoBase64, caminhoImagem);
 
 			if (uploadImage.length === 0)
 				return res.status(400).json(uploadImage);
@@ -105,8 +106,10 @@ const editarUsuario = async (req, res) => {
 		if (Object.keys(updateRestaurante).length !== 0) {
 			let urlImagem;
 			if (updateRestaurante.imagemRestaurante) {
-				const caminhoImagem = 'restaurante_' + restaurante_id + '/imagem_restaurante.jpg';
-				const uploadImage = await atualizarImagem(updateRestaurante.imagemRestaurante, caminhoImagem);
+				const { infoBase64, infoExtensao } = tratarBase64(updateRestaurante.imagemRestaurante);
+
+				const caminhoImagem = 'restaurante_' + restaurante_id + '/imagem_restaurante.' + infoExtensao;
+				const uploadImage = await atualizarImagem(infoBase64, caminhoImagem);
 
 				if (uploadImage.length === 0)
 					return res.status(400).json(uploadImage)

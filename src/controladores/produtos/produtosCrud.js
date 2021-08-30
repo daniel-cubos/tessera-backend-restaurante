@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const knex = require('../../bancodedados/conexao');
 const schema = require('../../validacao/produstosSchema');
-const { uploadImagem, atualizarImagem, pegarUrlImagem } = require('../../supabase')
+const { uploadImagem, atualizarImagem, pegarUrlImagem, tratarBase64 } = require('../../supabase')
 
 const consultarProdutos = async (req, res) => {
 	const { id } = req.params;
@@ -55,8 +55,10 @@ const cadastrarProdutos = async (req, res) => {
 			return res.status(400).json('Não foi possivel cadastrar o produto.');
 
 		if (requisicaoProduto.imagemProduto) {
-			const caminhoImagem = 'restaurante_' + restaurante_id.toString() + '/produtos/' + produtoCadastrado[0].id.toString() + '.jpg';
-			const uploadImage = uploadImagem(requisicaoProduto.imagemProduto, caminhoImagem);
+			const { infoBase64, infoExtensao } = tratarBase64(requisicaoProduto.imagemProduto);
+
+			const caminhoImagem = 'restaurante_' + restaurante_id.toString() + '/produtos/' + produtoCadastrado[0].id.toString() + '.' + infoExtensao;
+			const uploadImage = uploadImagem(infoBase64, caminhoImagem);
 
 			if (uploadImage.length === 0)
 				return res.status(400).json(uploadImage);
@@ -92,8 +94,10 @@ const editarProdutos = async (req, res) => {
 			return res.status(404).json('O produto não foi encontrado!');
 
 		if (requisicaoProduto.imagemProduto) {
-			const caminhoImagem = 'restaurante_' + restaurante_id.toString() + '/produtos/' + id.toString() + '.jpg';
-			const attImage = await atualizarImagem(requisicaoProduto.imagemProduto, caminhoImagem)
+			const { infoBase64, infoExtensao } = tratarBase64(requisicaoProduto.imagemProduto);
+
+			const caminhoImagem = 'restaurante_' + restaurante_id.toString() + '/produtos/' + id.toString() + '.' + infoExtensao;
+			const attImage = await atualizarImagem(infoBase64, caminhoImagem)
 
 			if (attImage.length === 0)
 				return res.status(400).json(attImage)
