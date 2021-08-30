@@ -58,7 +58,6 @@ const listagemDePedido = async (req, res) => {
 			const infos = {
 				idPedido: pedido.id,
 				nome: infoConsumidor.nome,
-				cep: infoConsumidor.cep,
 				endereco: infoConsumidor.endereco,
 				complemento: infoConsumidor.complemento,
 				carrinho: produtosCarrinho,
@@ -104,7 +103,8 @@ const detalhesDoPedido = async (req, res) => {
 			cep: infoConsumidor.cep,
 			endereco: infoConsumidor.endereco,
 			complemento: infoConsumidor.complemento,
-			carrinho: produtosCarrinho
+			carrinho: produtosCarrinho,
+			totalPedido: cliente.total_pedido
 		}
 
 		return res.json(infos);
